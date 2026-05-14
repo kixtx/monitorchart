@@ -11,6 +11,11 @@
   "R5C3": true,
   "R3C3": true,
   "R2C3": true,
+  "R3C4": true,
+  "R5C4": true,
+  "R6C4": true,
+  "R6C6": true,
+  "R6C5": true,
   "_budget": {
     "total": 7,
     "used": 0
