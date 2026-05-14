@@ -1,0 +1,11 @@
+{
+  "R1C1": true,
+  "R2C1": true,
+  "R4C1": false,
+  "R5C1": true,
+  "R6C1": true,
+  "_budget": {
+    "total": 7,
+    "used": 0
+  }
+}
