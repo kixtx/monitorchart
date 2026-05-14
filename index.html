@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nirvana Tech — Bangalore Seating Chart</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F6F2; --surface: #FFFFFF; --border: #E2E0D8; --border-strong: #C8C5BA;
+    --text-primary: #1C1B18; --text-secondary: #6B6860; --text-muted: #A09D96;
+    --monitor-bg: #1C3D2E; --monitor-badge-bg: #2D6147; --monitor-badge-text: #A8E6C4;
+    --no-monitor-bg: #FFFFFF; --no-monitor-badge-bg: #F0EEE8; --no-monitor-badge-text: #6B6860;
+    --pillar-bg: #E8E5DC; --pillar-border: #C8C5BA;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); min-height: 100vh; padding: 32px 24px; }
+  header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+  .header-left h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  .header-left p  { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+  .top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .stat-pill { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 100px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); }
+  .stat-pill .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .stat-pill.monitor-stat .dot { background: #2D6147; }
+  .stat-pill.nomonitor-stat .dot { background: #C8C5BA; }
+  .stat-pill .count { font-weight: 600; color: var(--text-primary); }
+  .status-bar { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text-muted); padding: 6px 12px; border: 1px solid var(--border); border-radius: 100px; background: var(--surface); transition: color 0.3s, border-color 0.3s; min-width: 160px; text-align: center; }
+  .status-bar.saving { color: #185FA5; border-color: #B5D4F4; }
+  .status-bar.saved  { color: #2D6147; border-color: #A8E6C4; }
+  .status-bar.error  { color: #A32D2D; border-color: #F7C1C1; }
+  .edit-mode-btn { font-size: 12px; font-family: 'DM Mono', monospace; padding: 6px 14px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--text-secondary); transition: all 0.15s; }
+  .edit-mode-btn:hover { background: var(--bg); }
+  .edit-mode-btn.active { background: #1C3D2E; color: #A8E6C4; border-color: #1C3D2E; }
+
+  /* Budget + disclaimer card */
+  .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px 22px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
+  .disclaimer { font-size: 12px; color: var(--text-secondary); line-height: 1.5; max-width: 420px; }
+  .disclaimer strong { color: var(--text-primary); font-weight: 600; }
+  .budget-block { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .budget-meta { text-align: right; }
+  .budget-label { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-bottom: 2px; }
+  .budget-remaining { font-size: 26px; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text-primary); line-height: 1; }
+  .budget-remaining.exhausted { color: #A32D2D; }
+  .budget-sublabel { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .budget-segments { display: flex; gap: 5px; align-items: center; }
+  .budget-seg { width: 16px; height: 16px; border-radius: 50%; transition: background 0.2s, transform 0.15s; }
+  .budget-seg.used { background: #1C3D2E; }
+  .budget-seg.free { background: var(--border); }
+  .budget-controls { display: none; align-items: center; gap: 6px; }
+  .budget-controls.visible { display: flex; }
+  .budget-adj { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--bg); cursor: pointer; font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); transition: all 0.15s; padding: 0; font-family: sans-serif; }
+  .budget-adj:hover:not(:disabled) { background: #1C3D2E; color: #fff; border-color: #1C3D2E; }
+  .budget-adj:disabled { opacity: 0.25; cursor: default; }
+
+  .floor-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; overflow-x: auto; }
+  .floor-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; font-family: 'DM Mono', monospace; }
+  .floor-grid { display: flex; flex-direction: column; gap: 8px; min-width: max-content; }
+  .floor-row { display: flex; align-items: center; gap: 8px; }
+  .row-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text-muted); width: 28px; text-align: right; flex-shrink: 0; }
+  .aisle { width: 28px; flex-shrink: 0; position: relative; }
+  .aisle::after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); border-left: 1px dashed var(--border-strong); }
+  .seat { width: 90px; height: 76px; border-radius: 10px; border: 1.5px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; flex-shrink: 0; transition: transform 0.1s, box-shadow 0.15s, background 0.2s; user-select: none; }
+  .seat.editable { cursor: pointer; }
+  .seat.editable:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+  .seat.editable:active { transform: translateY(0); }
+  .seat.has-monitor { background: var(--monitor-bg); border-color: var(--monitor-bg); }
+  .seat.no-monitor  { background: var(--no-monitor-bg); border-color: var(--border); }
+  .seat-id { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; }
+  .seat.has-monitor .seat-id { color: rgba(255,255,255,0.5); }
+  .seat.no-monitor  .seat-id { color: var(--text-muted); }
+  .seat-name { font-size: 12px; font-weight: 600; text-align: center; line-height: 1.2; padding: 0 6px; }
+  .seat.has-monitor .seat-name { color: #FFFFFF; }
+  .seat.no-monitor  .seat-name { color: var(--text-primary); }
+  .mon-badge { font-size: 9px; font-weight: 600; padding: 2px 8px; border-radius: 100px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .seat.has-monitor .mon-badge { background: var(--monitor-badge-bg); color: var(--monitor-badge-text); }
+  .seat.no-monitor  .mon-badge { background: var(--no-monitor-badge-bg); color: var(--no-monitor-badge-text); }
+  .pillar { width: 90px; height: 76px; border-radius: 10px; background: var(--pillar-bg); border: 1.5px solid var(--pillar-border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pillar-inner { width: 32px; height: 32px; background: var(--pillar-border); border-radius: 4px; }
+  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); align-items: center; }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .legend-swatch { width: 28px; height: 18px; border-radius: 5px; border: 1.5px solid transparent; }
+  .legend-swatch.monitor    { background: var(--monitor-bg); border-color: var(--monitor-bg); }
+  .legend-swatch.no-monitor { background: var(--no-monitor-bg); border-color: var(--border); }
+  .legend-swatch.pillar     { background: var(--pillar-bg); border-color: var(--pillar-border); }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: var(--surface); border-radius: 16px; padding: 28px; width: 340px; border: 1px solid var(--border); }
+  .modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .modal p  { font-size: 13px; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
+  .modal input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; margin-bottom: 8px; background: var(--bg); }
+  .modal input:focus { border-color: #1C3D2E; }
+  .modal .error-msg { font-size: 12px; color: #A32D2D; margin-bottom: 12px; min-height: 16px; }
+  .modal-btns { display: flex; gap: 8px; }
+  .btn-primary   { flex: 1; padding: 10px; background: #1C3D2E; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .btn-primary:hover { background: #2D6147; }
+  .btn-secondary { padding: 10px 16px; background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .setup-note { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-top: 4px; margin-bottom: 16px; line-height: 1.6; }
+  .loading-overlay { position: fixed; inset: 0; background: rgba(247,246,242,0.85); display: flex; align-items: center; justify-content: center; z-index: 50; font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text-muted); }
+  .loading-overlay.hidden { display: none; }
+  /* Requestable seats in view mode */
+  .seat.requestable { cursor: pointer; }
+  .seat.requestable:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: #1C3D2E; }
+  .seat.requestable:hover .mon-badge { background: #1C3D2E; color: #A8E6C4; }
+  /* Request modal specifics */
+  .modal select { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; margin-bottom: 8px; background: var(--bg); color: var(--text-primary); appearance: none; cursor: pointer; }
+  .modal select:focus { border-color: #1C3D2E; }
+  .modal textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; margin-bottom: 8px; background: var(--bg); resize: vertical; min-height: 72px; }
+  .modal textarea:focus { border-color: #1C3D2E; }
+  .modal label { font-size: 12px; font-weight: 500; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+  .req-success { text-align: center; padding: 12px 0 4px; }
+  .req-success .tick { font-size: 32px; margin-bottom: 8px; }
+  .req-success p { font-size: 14px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay">Loading current state...</div>
+
+<!-- Monitor request modal -->
+<div class="modal-overlay hidden" id="req-modal">
+  <div class="modal">
+    <div id="req-form-view">
+      <h2>Request a monitor</h2>
+      <p>Fill in your details and we'll get back to you based on budget availability.</p>
+      <label>Your name</label>
+      <input type="text" id="req-name" placeholder="e.g. Priya Sharma" />
+      <label>Your seat</label>
+      <select id="req-seat"></select>
+      <label>Notes <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+      <textarea id="req-notes" placeholder="e.g. need it for video calls"></textarea>
+      <div class="error-msg" id="req-error"></div>
+      <div class="modal-btns">
+        <button class="btn-secondary" onclick="closeModal('req-modal')">Cancel</button>
+        <button class="btn-primary" id="req-submit-btn" onclick="submitRequest()">Send request</button>
+      </div>
+    </div>
+    <div id="req-success-view" class="req-success" style="display:none">
+      <div class="tick">✅</div>
+      <h2 style="margin-bottom:8px">Request sent!</h2>
+      <p>Your request has been received. People Ops will follow up with you soon.</p>
+      <div class="modal-btns" style="margin-top:20px">
+        <button class="btn-primary" onclick="closeModal('req-modal')">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="pwd-modal">
+  <div class="modal">
+    <h2>Enter edit password</h2>
+    <p>This chart is view-only. Enter the team password to enable editing.</p>
+    <input type="password" id="pwd-input" placeholder="Password" />
+    <div class="error-msg" id="pwd-error"></div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeModal('pwd-modal')">Cancel</button>
+      <button class="btn-primary" onclick="checkPassword()">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="setup-modal">
+  <div class="modal">
+    <h2>GitHub token (one time)</h2>
+    <p>To auto-save changes, enter your GitHub Personal Access Token. Stored only in your browser.</p>
+    <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxx" />
+    <div class="setup-note">
+      github.com &rarr; Settings &rarr; Developer settings<br>
+      &rarr; Personal access tokens &rarr; Tokens (classic)<br>
+      &rarr; Generate new token &rarr; tick <strong>repo</strong> scope
+    </div>
+    <div class="error-msg" id="setup-error"></div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="closeModal('setup-modal')">Cancel</button>
+      <button class="btn-primary" onclick="saveToken()">Save token</button>
+    </div>
+  </div>
+</div>
+
+<header>
+  <div class="header-left">
+    <h1>Nirvana Tech &middot; Bangalore</h1>
+    <p>Seating &amp; monitor availability</p>
+  </div>
+  <div class="top-right">
+    <div class="stats" id="stats"></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="status-bar" id="status-bar">Loading...</div>
+      <button class="edit-mode-btn" id="edit-btn" onclick="handleEditClick()">&#128274; Edit mode</button>
+    </div>
+  </div>
+</header>
+
+<!-- Disclaimer + budget meter -->
+<div class="info-card">
+  <div class="disclaimer">
+    <strong>Monitors are assigned to the seat, not the person.</strong><br>
+    If you move desks, the monitor stays. To request a monitor for your seat, click on the seat with no monitor assigned (subject to budget availability).
+  </div>
+  <div class="budget-block">
+    <div class="budget-controls" id="budget-controls">
+      <button class="budget-adj" id="budget-dec" onclick="adjustBudget(-1)" title="Mark one request fulfilled">&#8722;</button>
+    </div>
+    <div>
+      <div class="budget-label">Monitor budget</div>
+      <div class="budget-segments" id="budget-segs"></div>
+    </div>
+    <div class="budget-meta">
+      <div class="budget-remaining" id="budget-remaining">7</div>
+      <div class="budget-sublabel" id="budget-sublabel">of 7 remaining</div>
+    </div>
+    <div class="budget-controls" id="budget-controls-inc">
+      <button class="budget-adj" id="budget-inc" onclick="adjustBudget(1)" title="Undo a request">&#43;</button>
+    </div>
+  </div>
+</div>
+
+<div class="floor-wrap">
+  <div class="floor-label">Main floor &middot; 6 rows &times; 6 columns &middot; 35 seats</div>
+  <div class="floor-grid" id="floor-grid"></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch monitor"></div>Monitor available</div>
+    <div class="legend-item"><div class="legend-swatch no-monitor"></div>No monitor &mdash; <span style="color:var(--text-muted);font-size:11px">click to request one</span></div>
+    <div class="legend-item"><div class="legend-swatch pillar"></div>Pillar</div>
+  </div>
+</div>
+
+<script>
+const SLACK_WEBHOOK = "";
+const GITHUB_USER   = "nirvanatech";
+const GITHUB_REPO   = "monitorchart";
+const GITHUB_BRANCH = "main";
+const STATE_FILE    = "state.json";
+const EDIT_PASSWORD = "nirvana2026";
+
+const SEAT_NAMES = {
+  "R1C1":"","R1C2":"","R1C3":"","R1C4":"","R1C5":"","R1C6":"",
+  "R2C1":"","R2C2":"","R2C3":"","R2C4":"",           "R2C6":"",
+  "R3C1":"","R3C2":"","R3C3":"","R3C4":"","R3C5":"","R3C6":"",
+  "R4C1":"","R4C2":"","R4C3":"","R4C4":"","R4C5":"","R4C6":"",
+  "R5C1":"","R5C2":"","R5C3":"","R5C4":"","R5C5":"","R5C6":"",
+  "R6C1":"","R6C2":"","R6C3":"","R6C4":"","R6C5":"","R6C6":"",
+};
+
+const ROWS = 6, COLS = 6;
+const PILLAR = {r:2, c:5};
+const AISLES_AFTER = [2, 4];
+
+let monitorState = {};
+let budgetTotal  = 7;
+let budgetUsed   = 0;
+let isEditMode   = false;
+let isSaving     = false;
+let pendingSave  = false;
+let saveTimer    = null;
+let githubToken  = localStorage.getItem("nt_gh_token") || "";
+
+// BUILD GRID
+const grid = document.getElementById("floor-grid");
+for (let r = 1; r <= ROWS; r++) {
+  const rowDiv = document.createElement("div");
+  rowDiv.className = "floor-row";
+  const lbl = document.createElement("div");
+  lbl.className = "row-label";
+  lbl.textContent = "R" + r;
+  rowDiv.appendChild(lbl);
+  for (let c = 1; c <= COLS; c++) {
+    if (r === PILLAR.r && c === PILLAR.c) {
+      const p = document.createElement("div");
+      p.className = "pillar";
+      p.innerHTML = '<div class="pillar-inner"></div>';
+      rowDiv.appendChild(p);
+    } else {
+      const id   = `R${r}C${c}`;
+      const seat = document.createElement("div");
+      seat.className = "seat no-monitor";
+      seat.dataset.id = id;
+      const name = SEAT_NAMES[id] || "Open";
+      seat.innerHTML = `<span class="seat-id">${id}</span><span class="seat-name">${name}</span><span class="mon-badge">No monitor</span>`;
+      seat.addEventListener("click", () => {
+        if (isEditMode) toggleSeat(seat, id);
+        else if (!monitorState[id]) openRequestForm(id);
+      });
+      rowDiv.appendChild(seat);
+    }
+    if (AISLES_AFTER.includes(c) && c < COLS) {
+      const aisle = document.createElement("div");
+      aisle.className = "aisle";
+      rowDiv.appendChild(aisle);
+    }
+  }
+  grid.appendChild(rowDiv);
+}
+
+function applyState() {
+  document.querySelectorAll(".seat").forEach(seat => {
+    const id  = seat.dataset.id;
+    const has = monitorState[id] || false;
+    let cls = "seat " + (has ? "has-monitor" : "no-monitor");
+    if (isEditMode) cls += " editable";
+    else if (!has) cls += " requestable";
+    seat.className = cls;
+    seat.querySelector(".mon-badge").textContent = has ? "Monitor" : "No monitor";
+  });
+  updateStats();
+}
+
+function openRequestForm(preselectedId) {
+  // populate seat dropdown with all seats that have no monitor
+  const sel = document.getElementById("req-seat");
+  sel.innerHTML = "";
+  document.querySelectorAll(".seat").forEach(seat => {
+    if (!monitorState[seat.dataset.id]) {
+      const opt = document.createElement("option");
+      opt.value = seat.dataset.id;
+      const name = SEAT_NAMES[seat.dataset.id];
+      opt.textContent = seat.dataset.id + (name ? " — " + name : "");
+      sel.appendChild(opt);
+    }
+  });
+  if (preselectedId) sel.value = preselectedId;
+  // reset form state
+  document.getElementById("req-name").value = "";
+  document.getElementById("req-notes").value = "";
+  document.getElementById("req-error").textContent = "";
+  document.getElementById("req-form-view").style.display = "";
+  document.getElementById("req-success-view").style.display = "none";
+  document.getElementById("req-submit-btn").disabled = false;
+  document.getElementById("req-submit-btn").textContent = "Send request";
+  document.getElementById("req-modal").classList.remove("hidden");
+  setTimeout(() => document.getElementById("req-name").focus(), 100);
+}
+
+async function submitRequest() {
+  const name  = document.getElementById("req-name").value.trim();
+  const seat  = document.getElementById("req-seat").value;
+  const notes = document.getElementById("req-notes").value.trim();
+  if (!name) { document.getElementById("req-error").textContent = "Please enter your name."; return; }
+  if (!seat) { document.getElementById("req-error").textContent = "Please select your seat."; return; }
+  document.getElementById("req-error").textContent = "";
+  document.getElementById("req-submit-btn").disabled = true;
+  document.getElementById("req-submit-btn").textContent = "Sending...";
+  const msg = `🖥️ *New Monitor Request*\n*Name:* ${name}\n*Seat:* ${seat}\n${notes ? "*Notes:* " + notes : ""}`.trim();
+  try {
+    await fetch(SLACK_WEBHOOK, {
+      method: "POST", mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: msg })
+    });
+    document.getElementById("req-form-view").style.display = "none";
+    document.getElementById("req-success-view").style.display = "";
+  } catch(e) {
+    document.getElementById("req-error").textContent = "Failed to send — please try again.";
+    document.getElementById("req-submit-btn").disabled = false;
+    document.getElementById("req-submit-btn").textContent = "Send request";
+  }
+}
+
+function updateBudgetUI() {
+  const remaining = budgetTotal - budgetUsed;
+  const segs = document.getElementById("budget-segs");
+  segs.innerHTML = "";
+  for (let i = 0; i < budgetTotal; i++) {
+    const s = document.createElement("div");
+    s.className = "budget-seg " + (i < budgetUsed ? "used" : "free");
+    segs.appendChild(s);
+  }
+  const remEl = document.getElementById("budget-remaining");
+  remEl.textContent = remaining;
+  remEl.className   = "budget-remaining" + (remaining === 0 ? " exhausted" : "");
+  document.getElementById("budget-sublabel").textContent =
+    remaining === 0 ? "Budget exhausted" : `of ${budgetTotal} remaining`;
+  document.getElementById("budget-dec").disabled = budgetUsed <= 0;
+  document.getElementById("budget-inc").disabled = budgetUsed >= budgetTotal;
+}
+
+function adjustBudget(delta) {
+  const next = budgetUsed + delta;
+  if (next < 0 || next > budgetTotal) return;
+  budgetUsed = next;
+  updateBudgetUI();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(runSave, 1500);
+  setStatus("Saving...", "saving");
+}
+
+async function loadState() {
+  try {
+    const token = localStorage.getItem("nt_gh_token");
+    const headers = { Accept: "application/vnd.github.v3.raw" };
+    if (token) headers["Authorization"] = `token ${token}`;
+    const res = await fetch(
+      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${STATE_FILE}`,
+      { headers, cache: "no-store" }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data._budget) {
+        budgetTotal = data._budget.total ?? 7;
+        budgetUsed  = data._budget.used  ?? 0;
+        delete data._budget;
+      }
+      monitorState = data;
+    }
+  } catch(e) {
+    monitorState = {};
+  }
+  document.getElementById("loading-overlay").classList.add("hidden");
+  setStatus("View only", "");
+  applyState();
+  updateBudgetUI();
+}
+
+function toggleSeat(el, id) {
+  monitorState[id] = !monitorState[id];
+  const has = monitorState[id];
+  el.className = "seat " + (has ? "has-monitor" : "no-monitor") + " editable";
+  el.querySelector(".mon-badge").textContent = has ? "Monitor" : "No monitor";
+  updateStats();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(runSave, 1500);
+  setStatus("Saving...", "saving");
+}
+
+async function runSave() {
+  if (isSaving) { pendingSave = true; return; }
+  isSaving = true; pendingSave = false;
+  await saveToGitHub();
+  isSaving = false;
+  if (pendingSave) { pendingSave = false; saveTimer = setTimeout(runSave, 800); }
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById("status-bar");
+  el.textContent = msg;
+  el.className = "status-bar " + (cls || "");
+}
+
+async function saveToGitHub() {
+  if (!githubToken) {
+    document.getElementById("setup-modal").classList.remove("hidden");
+    return;
+  }
+  setStatus("Saving...", "saving");
+  try {
+    const apiBase = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${STATE_FILE}`;
+    let sha = null;
+    const metaRes = await fetch(`${apiBase}?ref=${GITHUB_BRANCH}&t=${Date.now()}`, {
+      headers: { Authorization: `token ${githubToken}`, Accept: "application/vnd.github.v3+json" },
+      cache: "no-store"
+    });
+    if (metaRes.ok) {
+      sha = (await metaRes.json()).sha;
+    } else if (metaRes.status !== 404) {
+      throw new Error("Could not read state file");
+    }
+
+    const stateToSave = { ...monitorState, _budget: { total: budgetTotal, used: budgetUsed } };
+    const content = btoa(JSON.stringify(stateToSave, null, 2));
+    const body = { message: "Update monitor state", content, branch: GITHUB_BRANCH };
+    if (sha) body.sha = sha;
+
+    const putRes = await fetch(apiBase, {
+      method: "PUT",
+      headers: { Authorization: `token ${githubToken}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!putRes.ok) { const e = await putRes.json(); throw new Error(e.message || "Save failed"); }
+
+    setStatus("Saved ✓", "saved");
+    setTimeout(() => { if (isEditMode) setStatus("Edit mode on", "saved"); }, 2000);
+  } catch(e) {
+    console.error(e);
+    setStatus("Save failed — check token", "error");
+  }
+}
+
+function handleEditClick() {
+  if (isEditMode) {
+    isEditMode = false;
+    document.getElementById("edit-btn").textContent = "\u{1F512} Edit mode";
+    document.getElementById("edit-btn").classList.remove("active");
+    setStatus("View only", "");
+    document.querySelectorAll(".seat").forEach(s => s.classList.remove("editable"));
+    document.getElementById("budget-controls").classList.remove("visible");
+    document.getElementById("budget-controls-inc").classList.remove("visible");
+  } else {
+    document.getElementById("pwd-modal").classList.remove("hidden");
+    setTimeout(() => document.getElementById("pwd-input").focus(), 100);
+  }
+}
+
+function checkPassword() {
+  const val = document.getElementById("pwd-input").value;
+  if (val === EDIT_PASSWORD) {
+    closeModal("pwd-modal");
+    document.getElementById("pwd-input").value = "";
+    document.getElementById("pwd-error").textContent = "";
+    isEditMode = true;
+    document.getElementById("edit-btn").textContent = "\u{1F513} Editing";
+    document.getElementById("edit-btn").classList.add("active");
+    setStatus("Edit mode on", "saved");
+    document.querySelectorAll(".seat").forEach(s => s.classList.add("editable"));
+    document.getElementById("budget-controls").classList.add("visible");
+    document.getElementById("budget-controls-inc").classList.add("visible");
+    if (!githubToken) setTimeout(() => document.getElementById("setup-modal").classList.remove("hidden"), 400);
+  } else {
+    document.getElementById("pwd-error").textContent = "Incorrect password.";
+  }
+}
+
+function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+document.getElementById("pwd-input").addEventListener("keydown", e => { if (e.key === "Enter") checkPassword(); });
+
+function saveToken() {
+  const t = document.getElementById("token-input").value.trim();
+  if (!t.startsWith("ghp_") && !t.startsWith("github_pat_")) {
+    document.getElementById("setup-error").textContent = "Token should start with ghp_ or github_pat_";
+    return;
+  }
+  githubToken = t;
+  localStorage.setItem("nt_gh_token", t);
+  closeModal("setup-modal");
+  setStatus("Token saved ✓", "saved");
+}
+
+function updateStats() {
+  const all     = document.querySelectorAll(".seat");
+  const withMon = [...all].filter(s => s.classList.contains("has-monitor")).length;
+  const without = all.length - withMon;
+  document.getElementById("stats").innerHTML =
+    `<div class="stat-pill monitor-stat"><div class="dot"></div>Monitors <span class="count">${withMon}</span></div>` +
+    `<div class="stat-pill nomonitor-stat"><div class="dot"></div>No monitor <span class="count">${without}</span></div>` +
+    `<div class="stat-pill"><span class="count">${all.length}</span>&nbsp;seats</div>`;
+}
+
+loadState();
+</script>
+</body>
+</html>
