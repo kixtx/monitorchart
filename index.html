@@ -386,13 +386,10 @@ function adjustBudget(delta) {
 
 async function loadState() {
   try {
-    const token = localStorage.getItem("nt_gh_token");
-    const headers = { Accept: "application/vnd.github.v3.raw" };
-    if (token) headers["Authorization"] = `token ${token}`;
-    const res = await fetch(
-      `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${STATE_FILE}`,
-      { headers, cache: "no-store" }
-    );
+  const res = await fetch(
+  `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${STATE_FILE}`,
+  { headers: { Accept: "application/vnd.github.v3.raw" }, cache: "no-store" }
+);
     if (res.ok) {
       const data = await res.json();
       if (data._budget) {
