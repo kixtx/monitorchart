@@ -17,6 +17,9 @@
   "R6C6": true,
   "R6C5": true,
   "R2C2": true,
+  "R1C6": true,
+  "R2C6": true,
+  "R3C6": true,
   "_budget": {
     "total": 7,
     "used": 0
